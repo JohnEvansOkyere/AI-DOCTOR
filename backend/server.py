@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter
+from fastapi import FastAPI, APIRouter, HTTPException
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -6,10 +6,10 @@ import os
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field
-from typing import List
+from typing import List, Optional
 import uuid
 from datetime import datetime
-
+from emergentintegrations.llm.chat import LlmChat, UserMessage
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -20,37 +20,167 @@ client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
 # Create the main app without a prefix
-app = FastAPI()
+app = FastAPI(title="Ghana AI Doctor Agent")
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
-# Define Models
-class StatusCheck(BaseModel):
+# Medical consultation models
+class PatientInfo(BaseModel):
+    age: Optional[int] = None
+    gender: Optional[str] = None
+    location: Optional[str] = "Ghana"
+
+class ConsultationRequest(BaseModel):
+    message: str
+    session_id: str
+    patient_info: Optional[PatientInfo] = None
+
+class ConsultationResponse(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    client_name: str
+    session_id: str
+    patient_message: str
+    doctor_response: str
     timestamp: datetime = Field(default_factory=datetime.utcnow)
+    patient_info: Optional[PatientInfo] = None
 
-class StatusCheckCreate(BaseModel):
-    client_name: str
+class SessionHistory(BaseModel):
+    session_id: str
+    consultations: List[ConsultationResponse]
 
-# Add your routes to the router instead of directly to app
+# Helper function to create Ghanaian doctor persona
+def get_ghana_doctor_system_message():
+    return """You are Dr. Kwame Asante, a senior physician with 15 years of experience at Korle Bu Teaching Hospital in Accra, Ghana. You are a compassionate, professional, and knowledgeable doctor who specializes in tropical medicine and general practice.
+
+Your approach:
+1. ALWAYS greet patients warmly and professionally in a Ghanaian context
+2. Ask relevant follow-up questions about symptoms
+3. Consider Ghana-specific health conditions (malaria, typhoid, cholera, hypertension, diabetes)
+4. Provide preliminary assessments based on symptoms described
+5. Suggest appropriate first aid or home remedies when safe
+6. ALWAYS recommend seeing a doctor in person if symptoms persist for more than 3 days
+7. Immediately advise emergency care for serious symptoms
+8. Be culturally sensitive to Ghanaian health beliefs and practices
+9. Mention local healthcare facilities when appropriate
+10. Include brief health education relevant to the condition
+
+IMPORTANT MEDICAL DISCLAIMERS:
+- This is preliminary medical guidance only
+- Not a replacement for in-person medical examination
+- For emergencies, advise calling 193 or visiting nearest hospital immediately
+- Always recommend professional medical care for persistent symptoms
+
+Respond in a caring, professional manner as a Ghanaian doctor would, incorporating local medical knowledge and cultural understanding."""
+
+# Medical consultation endpoint
+@api_router.post("/consult", response_model=ConsultationResponse)
+async def medical_consultation(request: ConsultationRequest):
+    try:
+        # Get Gemini API key from environment
+        gemini_api_key = os.environ.get('GEMINI_API_KEY')
+        if not gemini_api_key:
+            raise HTTPException(status_code=500, detail="Medical AI service not configured")
+        
+        # Create a new chat instance for this consultation
+        chat = LlmChat(
+            api_key=gemini_api_key,
+            session_id=request.session_id,
+            system_message=get_ghana_doctor_system_message()
+        ).with_model("gemini", "gemini-2.0-flash").with_max_tokens(1024)
+        
+        # Create enhanced user message with patient context
+        patient_context = ""
+        if request.patient_info:
+            context_parts = []
+            if request.patient_info.age:
+                context_parts.append(f"Age: {request.patient_info.age}")
+            if request.patient_info.gender:
+                context_parts.append(f"Gender: {request.patient_info.gender}")
+            if request.patient_info.location:
+                context_parts.append(f"Location: {request.patient_info.location}")
+            
+            if context_parts:
+                patient_context = f"Patient Information - {', '.join(context_parts)}\n\n"
+        
+        full_message = f"{patient_context}Patient says: {request.message}"
+        
+        # Create user message
+        user_message = UserMessage(text=full_message)
+        
+        # Get AI response
+        doctor_response = await chat.send_message(user_message)
+        
+        # Create consultation record
+        consultation = ConsultationResponse(
+            session_id=request.session_id,
+            patient_message=request.message,
+            doctor_response=doctor_response,
+            patient_info=request.patient_info
+        )
+        
+        # Store in database
+        await db.consultations.insert_one(consultation.dict())
+        
+        logger.info(f"Medical consultation completed for session: {request.session_id}")
+        return consultation
+        
+    except Exception as e:
+        logger.error(f"Medical consultation error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Medical consultation failed: {str(e)}")
+
+# Get consultation history
+@api_router.get("/consultations/{session_id}", response_model=SessionHistory)
+async def get_consultation_history(session_id: str):
+    try:
+        consultations = await db.consultations.find(
+            {"session_id": session_id}
+        ).sort("timestamp", 1).to_list(100)
+        
+        consultation_objects = [ConsultationResponse(**consultation) for consultation in consultations]
+        
+        return SessionHistory(
+            session_id=session_id,
+            consultations=consultation_objects
+        )
+    except Exception as e:
+        logger.error(f"Error fetching consultation history: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to fetch consultation history")
+
+# Health check endpoint
+@api_router.get("/health")
+async def health_check():
+    try:
+        # Check database connection
+        await client.admin.command('ping')
+        db_status = "connected"
+    except Exception:
+        db_status = "disconnected"
+    
+    # Check if Gemini API key is configured
+    gemini_configured = bool(os.environ.get('GEMINI_API_KEY'))
+    
+    return {
+        "status": "healthy",
+        "database": db_status,
+        "ai_service": "configured" if gemini_configured else "not configured",
+        "service": "Ghana AI Doctor Agent"
+    }
+
+# Root endpoint
 @api_router.get("/")
 async def root():
-    return {"message": "Hello World"}
-
-@api_router.post("/status", response_model=StatusCheck)
-async def create_status_check(input: StatusCheckCreate):
-    status_dict = input.dict()
-    status_obj = StatusCheck(**status_dict)
-    _ = await db.status_checks.insert_one(status_obj.dict())
-    return status_obj
-
-@api_router.get("/status", response_model=List[StatusCheck])
-async def get_status_checks():
-    status_checks = await db.status_checks.find().to_list(1000)
-    return [StatusCheck(**status_check) for status_check in status_checks]
+    return {
+        "message": "Ghana AI Doctor Agent - Ready to help with medical consultations",
+        "version": "1.0.0",
+        "doctor": "Dr. Kwame Asante - Korle Bu Teaching Hospital"
+    }
 
 # Include the router in the main app
 app.include_router(api_router)
@@ -62,13 +192,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
