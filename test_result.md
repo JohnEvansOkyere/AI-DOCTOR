@@ -195,8 +195,6 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Medical consultation API with Gemini AI integration"
-    - "Session management and chat history"
     - "Medical consultation interface"
     - "Patient information collection"
   stuck_tasks: []
