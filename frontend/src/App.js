@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
 import axios from 'axios';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
+console.log("ENV:", process.env.REACT_APP_BACKEND_URL);
 
 function App() {
   const [messages, setMessages] = useState([]);
@@ -16,6 +17,9 @@ function App() {
     gender: '',
     location: 'Ghana'
   });
+  const [typingText, setTypingText] = useState(''); // Current typed text
+  const [typingIndex, setTypingIndex] = useState(0); // Index of character being typed
+  const [currentResponse, setCurrentResponse] = useState(''); // Full response to type
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -24,10 +28,9 @@ function App() {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, typingText]);
 
   useEffect(() => {
-    // Load consultation history when component mounts
     loadConsultationHistory();
   }, []);
 
@@ -50,7 +53,7 @@ function App() {
         setMessages(formattedMessages);
       }
     } catch (error) {
-      console.error('Error loading consultation history:', error);
+      console.error('Error loading consultation history:', JSON.stringify(error));
     }
   };
 
@@ -58,14 +61,9 @@ function App() {
     e.preventDefault();
     setShowPatientForm(false);
     
-    // Add welcome message from Dr. Asante
     const welcomeMessage = {
       type: 'doctor',
-      content: `Akwaaba! I'm Dr. Kwame Asante from Korle Bu Teaching Hospital. I'm here to help you with your medical concerns. Please describe your symptoms or any health questions you may have, and I'll provide you with professional medical guidance.
-
-Remember, this consultation is for preliminary advice only. For serious concerns or if symptoms persist for more than 3 days, please visit a healthcare facility for proper examination.
-
-How are you feeling today?`,
+      content: `Akwaaba! I'm Dr. Kwame Asare from Korle Bu Teaching Hospital. I'm here to help you with your medical concerns. Please describe your symptoms or any health questions you may have, and I'll provide you with professional medical guidance.\n\nRemember, this consultation is for preliminary advice only. For serious concerns or if symptoms persist for more than 3 days, please visit a healthcare facility for proper examination.\n\nHow are you feeling today?`,
       timestamp: new Date().toISOString()
     };
     
@@ -83,28 +81,23 @@ How are you feeling today?`,
 
     setMessages(prev => [...prev, patientMessage]);
     setIsLoading(true);
+    setInputMessage(''); // Clear input immediately when sending starts
+    setTypingText(''); // Reset typing text
+    setTypingIndex(0); // Reset typing index
 
     try {
       const consultationRequest = {
         message: inputMessage,
         session_id: sessionId,
         patient_info: {
-          age: patientInfo.age ? parseInt(patientInfo.age) : null,
-          gender: patientInfo.gender || null,
-          location: patientInfo.location || 'Ghana'
+          age: patientInfo.age ? parseInt(patientInfo.age) : undefined,
+          gender: patientInfo.gender || undefined,
+          location: patientInfo.location || "Ghana"
         }
       };
 
       const response = await axios.post(`${API}/consult`, consultationRequest);
-
-      const doctorMessage = {
-        type: 'doctor',
-        content: response.data.doctor_response,
-        timestamp: response.data.timestamp
-      };
-
-      setMessages(prev => [...prev, doctorMessage]);
-      setInputMessage('');
+      setCurrentResponse(response.data.doctor_response); // Store full response for typing
     } catch (error) {
       console.error('Error sending message:', error);
       
@@ -120,6 +113,31 @@ How are you feeling today?`,
     }
   };
 
+  // Simulate character-by-character typing effect
+  useEffect(() => {
+    if (currentResponse && typingIndex < currentResponse.length) {
+      const timer = setTimeout(() => {
+        setTypingText(prev => prev + currentResponse[typingIndex]);
+        setTypingIndex(prev => prev + 1);
+
+        if (typingIndex + 1 === currentResponse.length) {
+          setMessages(prev => [
+            ...prev,
+            {
+              type: 'doctor',
+              content: currentResponse,
+              timestamp: new Date().toISOString()
+            }
+          ]);
+          setCurrentResponse(''); // Clear after completion
+          setTypingIndex(0); // Reset for next message
+        }
+      }, 15); // Adjust delay for typing speed
+
+      return () => clearTimeout(timer);
+    }
+  }, [typingIndex, currentResponse]);
+
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -133,7 +151,7 @@ How are you feeling today?`,
         <div className="patient-form">
           <div className="form-header">
             <h1>🏥 Ghana AI Doctor</h1>
-            <h2>Dr. Kwame Asante</h2>
+            <h2>Dr. Kwame Asare</h2>
             <p className="hospital-info">Korle Bu Teaching Hospital, Accra</p>
           </div>
           
@@ -212,7 +230,7 @@ How are you feeling today?`,
         <div className="doctor-info">
           <div className="doctor-avatar">🩺</div>
           <div className="doctor-details">
-            <h2>Dr. Kwame Asante</h2>
+            <h2>Dr. Kwame Asare</h2>
             <p>Senior Physician • Korle Bu Teaching Hospital</p>
             <p className="specialization">Tropical Medicine & General Practice</p>
           </div>
@@ -250,8 +268,24 @@ How are you feeling today?`,
             </div>
           </div>
         ))}
+        {currentResponse && (
+          <div className="message doctor">
+            <div className="message-content">
+              <div className="doctor-badge">
+                <span className="doctor-icon">👨‍⚕️</span>
+                <span>Dr. Asante</span>
+              </div>
+              <div className="message-text">
+                <p>{typingText}</p> {/* Display the typing text */}
+              </div>
+              <div className="message-timestamp">
+                {new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+              </div>
+            </div>
+          </div>
+        )}
         
-        {isLoading && (
+        {isLoading && !currentResponse && (
           <div className="message doctor loading">
             <div className="message-content">
               <div className="doctor-badge">
@@ -264,7 +298,7 @@ How are you feeling today?`,
                   <span></span>
                   <span></span>
                 </div>
-                <p>Dr. Asante is analyzing your symptoms...</p>
+                <p>Dr. Asare is analyzing your symptoms...</p>
               </div>
             </div>
           </div>

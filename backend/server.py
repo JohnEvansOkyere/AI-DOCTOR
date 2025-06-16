@@ -9,7 +9,9 @@ from pydantic import BaseModel, Field
 from typing import List, Optional
 import uuid
 from datetime import datetime
-from emergentintegrations.llm.chat import LlmChat, UserMessage
+import google.generativeai as genai
+import asyncio
+from google.api_core import exceptions
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -31,6 +33,13 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# Initialize Gemini
+gemini_api_key = os.environ.get('GEMINI_API_KEY')
+if gemini_api_key:
+    genai.configure(api_key=gemini_api_key)
+else:
+    logger.warning("GEMINI_API_KEY not found in environment variables")
 
 # Medical consultation models
 class PatientInfo(BaseModel):
@@ -55,47 +64,46 @@ class SessionHistory(BaseModel):
     session_id: str
     consultations: List[ConsultationResponse]
 
-# Helper function to create Ghanaian doctor persona
+# Helper function to create Ghanaian doctor persona with updated prompt
 def get_ghana_doctor_system_message():
-    return """You are Dr. Kwame Asante, a senior physician with 15 years of experience at Korle Bu Teaching Hospital in Accra, Ghana. You are a compassionate, professional, and knowledgeable doctor who specializes in tropical medicine and general practice.
+    return """You are Dr. Kwame Asante, a senior physician with 15 years of experience at Korle Bu Teaching Hospital in Accra, Ghana, specializing in tropical medicine and general practice. You are talking directly to the patient. Respond concisely with professional medical advice based on your extensive experience. Predict and suggest appropriate medications for common Ghanaian conditions:
+
+- For cough: Suggest cough medicines like Benylin (diphenhydramine) or Robitussin (guaifenesin), and recommend rest with warm fluids.
+- For malaria: Suggest antimalarial drugs like Artemether-Lumefantrine (Coartem) or Artesunate, and urge immediate testing.
+- For fever: Suggest paracetamol (acetaminophen) or ibuprofen to reduce fever, and advise hydration.
 
 Your approach:
-1. ALWAYS greet patients warmly and professionally in a Ghanaian context
-2. Ask relevant follow-up questions about symptoms
-3. Consider Ghana-specific health conditions (malaria, typhoid, cholera, hypertension, diabetes)
-4. Provide preliminary assessments based on symptoms described
-5. Suggest appropriate first aid or home remedies when safe
-6. ALWAYS recommend seeing a doctor in person if symptoms persist for more than 3 days
-7. Immediately advise emergency care for serious symptoms
-8. Be culturally sensitive to Ghanaian health beliefs and practices
-9. Mention local healthcare facilities when appropriate
-10. Include brief health education relevant to the condition
+1. Greet warmly in a Ghanaian context
+2. Provide a brief assessment based on symptoms
+3. Suggest medications based on the condition (cough, malaria, fever) using your experience
+4. Ask one relevant follow-up question
+5. Always recommend seeing a doctor in person if symptoms persist beyond 3 days or worsen
+6. Advise emergency care (call 193) for severe symptoms
+7. Be culturally sensitive to Ghanaian health beliefs
+8. Include a brief health tip
 
 IMPORTANT MEDICAL DISCLAIMERS:
-- This is preliminary medical guidance only
+- These are preliminary suggestions only, not a prescription
 - Not a replacement for in-person medical examination
-- For emergencies, advise calling 193 or visiting nearest hospital immediately
-- Always recommend professional medical care for persistent symptoms
+- For emergencies or persistent symptoms, consult a doctor or call 193
+- Medication suggestions are based on general knowledge; confirm with a healthcare provider"""
 
-Respond in a caring, professional manner as a Ghanaian doctor would, incorporating local medical knowledge and cultural understanding."""
-
-# Medical consultation endpoint
+# Medical consultation endpoint with history
 @api_router.post("/consult", response_model=ConsultationResponse)
 async def medical_consultation(request: ConsultationRequest):
     try:
-        # Get Gemini API key from environment
-        gemini_api_key = os.environ.get('GEMINI_API_KEY')
         if not gemini_api_key:
             raise HTTPException(status_code=500, detail="Medical AI service not configured")
         
-        # Create a new chat instance for this consultation
-        chat = LlmChat(
-            api_key=gemini_api_key,
-            session_id=request.session_id,
-            system_message=get_ghana_doctor_system_message()
-        ).with_model("gemini", "gemini-2.0-flash").with_max_tokens(1024)
-        
-        # Create enhanced user message with patient context
+        # Fetch existing consultation history for the session
+        consultations = await db.consultations.find({"session_id": request.session_id}).sort("timestamp", 1).to_list(100)
+        history = []
+        if consultations:
+            for consult in consultations:
+                history.append({"role": "user", "parts": [f"Patient: {consult['patient_message']}"]})
+                history.append({"role": "model", "parts": [f"Dr. Asante: {consult['doctor_response']}"]})
+
+        # Add the current patient message to history
         patient_context = ""
         if request.patient_info:
             context_parts = []
@@ -109,14 +117,31 @@ async def medical_consultation(request: ConsultationRequest):
             if context_parts:
                 patient_context = f"Patient Information - {', '.join(context_parts)}\n\n"
         
-        full_message = f"{patient_context}Patient says: {request.message}"
-        
-        # Create user message
-        user_message = UserMessage(text=full_message)
-        
-        # Get AI response
-        doctor_response = await chat.send_message(user_message)
-        
+        current_message = f"{patient_context}Patient says: {request.message}"
+        history.append({"role": "user", "parts": [current_message]})
+
+        # Initialize the Gemini model and chat session
+        model = genai.GenerativeModel('gemini-1.5-flash-latest')
+        chat = model.start_chat(history=history)
+
+        # Get AI response with retry logic for rate limits
+        max_retries = 3
+        retry_delay = 1
+        for attempt in range(max_retries):
+            try:
+                response = await chat.send_message_async(request.message)
+                doctor_response = response.text
+                break
+            except exceptions.ResourceExhausted as e:
+                if attempt < max_retries - 1:
+                    retry_delay *= 2
+                    logger.warning(f"Rate limit exceeded. Retrying in {retry_delay} seconds...")
+                    await asyncio.sleep(retry_delay)
+                else:
+                    raise HTTPException(status_code=429, detail=f"Rate limit exceeded. Please try again later. Details: {str(e)}")
+        else:
+            raise HTTPException(status_code=429, detail="Max retries reached due to rate limit.")
+
         # Create consultation record
         consultation = ConsultationResponse(
             session_id=request.session_id,
@@ -157,13 +182,11 @@ async def get_consultation_history(session_id: str):
 @api_router.get("/health")
 async def health_check():
     try:
-        # Check database connection
         await client.admin.command('ping')
         db_status = "connected"
     except Exception:
         db_status = "disconnected"
     
-    # Check if Gemini API key is configured
     gemini_configured = bool(os.environ.get('GEMINI_API_KEY'))
     
     return {
