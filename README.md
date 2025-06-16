@@ -1,205 +1,206 @@
-# Here are your Instructions
-# 🏥 **Your Ghana AI Doctor Agent - Complete Walkthrough!** 
+# 🏥 Ghana AI Doctor Agent
 
-## 🎯 **What We Built - The Complete System**
-
-You now have a **professional-grade AI medical consultation system** specifically designed for Ghana! Here's everything we created:
+Welcome to the **Ghana AI Doctor Agent** – a professional-grade AI medical consultation system tailored for Ghana! This project combines the latest AI technology with local medical expertise to provide accessible, culturally relevant, and secure medical guidance to users across Ghana.
 
 ---
 
-## 🤖 **Meet Dr. Kwame Asante - Your AI Doctor**
+## 👨‍⚕️ Meet Dr. Kwame Asante
 
-**👨‍⚕️ Professional Profile:**
-- **Name:** Dr. Kwame Asante
-- **Position:** Senior Physician 
-- **Hospital:** Korle Bu Teaching Hospital, Accra
-- **Experience:** 15 years in tropical medicine & general practice
+- **Name:** Dr. Kwame Asante  
+- **Position:** Senior Physician  
+- **Hospital:** Korle Bu Teaching Hospital, Accra  
+- **Experience:** 15 years in tropical medicine & general practice  
 - **Specialization:** Ghana-specific medical conditions
 
 ---
 
-## 🏗️ **Technical Architecture**
+## 🏗️ Technical Architecture
 
-### **Backend (FastAPI + Python)**
-```python
-🔹 AI Integration: Google Gemini 2.0 Flash (latest model)
-🔹 Database: MongoDB for consultation history
-🔹 API Endpoints: Medical consultation, session management, health checks
-🔹 Medical Persona: Professional Ghanaian doctor with local knowledge
-🔹 Session Management: Persistent chat history across conversations
-```
+### Backend (FastAPI + Python)
+- **AI Integration:** Google Gemini 2.0 Flash (latest model)
+- **Database:** MongoDB for consultation history
+- **API Endpoints:** `/api/consult`, `/api/consultations/{session_id}`, `/api/health`
+- **Session Management:** Persistent chat history for each session
+- **Security:** CORS, API key management, patient data protection
 
-### **Frontend (React + Modern UI)**
-```javascript
-🔹 Professional Medical Interface: Clean, trustworthy design
-🔹 Patient Information Form: Age, gender, location collection
-🔹 Real-time Chat: Doctor-patient conversation interface  
-🔹 Mobile Responsive: Works perfectly on phones & tablets
-🔹 Ghana Branding: Flag, colors, cultural context
-```
+### Frontend (React)
+- **Modern Medical UI:** Clean, professional, and mobile-responsive
+- **Patient Info Form:** Collects age, gender, and location (Ghana default)
+- **Real-time Chat:** Doctor-patient conversation interface
+- **Ghana Branding:** Flag, colors, and cultural context
 
 ---
 
-## 🎨 **User Experience Flow**
+## 🎨 User Experience Flow
 
-### **Step 1: Patient Information** 
-- Optional form for age, gender, location
-- Ghana set as default location
-- Can skip and start consultation directly
+1. **Patient Information:**  
+   - Optional form for age, gender, and location (default: Ghana)
+   - Option to skip and start consultation directly
 
-### **Step 2: Professional Consultation**
-- Clean chat interface with doctor branding
-- Dr. Kwame Asante introduces himself professionally
-- Typing indicators show when AI is "thinking"
-- Emergency notices prominently displayed
+2. **Professional Consultation:**  
+   - Chat interface with Dr. Kwame Asare
+   - Typing indicators and emergency notices
 
-### **Step 3: Medical Conversation**
-- Patients describe symptoms naturally
-- AI provides professional medical assessment
-- Ghana-specific disease considerations (malaria, typhoid, etc.)
-- First aid recommendations when appropriate
-- Clear advice on when to seek emergency care
+3. **Medical Conversation:**  
+   - Describe symptoms naturally
+   - AI provides Ghana-specific medical assessment and advice
+   - First aid and emergency guidance
 
-### **Step 4: Medical Disclaimers**
-- Every consultation includes proper disclaimers
-- "See a doctor if symptoms persist 3+ days"
-- Emergency contact information (193)
-- Clear statement that this supplements, not replaces, medical care
+4. **Medical Disclaimers:**  
+   - Every consultation includes clear disclaimers and emergency contacts
 
 ---
 
-## 🇬🇭 **Ghana-Specific Features**
+## 🇬🇭 Ghana-Specific Features
 
-### **Local Medical Knowledge:**
-- **Common Diseases:** Malaria, typhoid, cholera considerations
-- **Climate Factors:** Tropical disease awareness
+- **Local Medical Knowledge:** Malaria, typhoid, cholera, and more
+- **Climate Awareness:** Tropical disease context
 - **Healthcare System:** References to local hospitals and clinics
-- **Cultural Sensitivity:** Respectful of Ghanaian health beliefs
-
-### **Language & Communication:**
-- **Greeting:** "Akwaaba!" (Welcome in Twi)
-- **Professional Tone:** Appropriate for Ghanaian medical context
-- **Local References:** Korle Bu Hospital, emergency number 193
-- **Regional Awareness:** Accra, Kumasi, Tamale context
+- **Cultural Sensitivity:** Ghanaian health beliefs and communication style
+- **Language:** Greets with "Akwaaba!" and uses professional, Ghanaian tone
 
 ---
 
-## 🔧 **Advanced Technical Features**
+## 🔧 Advanced Technical Features
 
-### **AI Integration:**
-```python
-✅ Latest Gemini 2.0 Flash model
-✅ Optimized medical prompting
-✅ Session-based conversation memory
-✅ Error handling and fallbacks
-✅ Professional medical guidelines
-```
+- **AI Integration:**  
+  - Latest Gemini 2.0 Flash model  
+  - Optimized medical prompting  
+  - Session-based conversation memory  
+  - Robust error handling and fallbacks
 
-### **Data Management:**
-```python
-✅ MongoDB consultation storage
-✅ Session ID tracking
-✅ Patient information privacy
-✅ Consultation history retrieval
-✅ Scalable database design
-```
+- **Data Management:**  
+  - MongoDB consultation storage  
+  - Session ID tracking  
+  - Patient information privacy  
+  - Consultation history retrieval
 
-### **Security & Privacy:**
-```python
-✅ CORS configuration for web security
-✅ API key management
-✅ Patient data protection
-✅ Secure session handling
-✅ Medical disclaimer compliance
-```
+- **Security & Privacy:**  
+  - CORS configuration  
+  - API key management  
+  - Secure session handling  
+  - Medical disclaimer compliance
 
 ---
 
-## 📱 **Mobile-First Design**
+## 📱 Mobile-First Design
 
-### **Responsive Features:**
-- **Mobile Optimized:** Perfect experience on phones
+- **Responsive:** Works perfectly on phones and tablets
 - **Touch Friendly:** Large buttons, easy scrolling
-- **Fast Loading:** Optimized for slower connections
-- **Offline Ready:** Core functionality works without perfect internet
-
-### **Professional Styling:**
-- **Medical Theme:** Green Ghana colors, clean white backgrounds
-- **Doctor Branding:** Professional photo placeholders, hospital credentials
-- **Message Design:** Clear distinction between doctor and patient messages
-- **Loading States:** Professional "Dr. Asante is analyzing..." indicators
+- **Fast Loading:** Optimized for slow connections
+- **Professional Styling:** Ghanaian colors, clear message design, and loading indicators
 
 ---
 
-## 🚀 **Live Demo - Try It Now!**
+## 🚀 Getting Started
 
-**Access Your AI Doctor:** https://14e6895d-d4a9-42a0-aca8-b38bf98fecc9.preview.emergentagent.com
+### 1. **Clone the Repository**
+```sh
+git clone <your-repo-url>
+cd AI-DOCTOR
+```
 
-### **Sample Conversations to Try:**
+### 2. **Backend Setup**
+- **Python 3.10 recommended**
+- Create and activate a virtual environment:
+  ```sh
+  python -m venv .venv
+  .venv\Scripts\activate  # On Windows
+  ```
+- Install dependencies:
+  ```sh
+  pip install -r backend/requirements.txt
+  ```
+- Create a `.env` file in the `backend` folder:
+  ```
+  MONGO_URL=mongodb://localhost:27017
+  DB_NAME=ai-doctor
+  GEMINI_API_KEY=your_gemini_api_key
+  ```
+- Start MongoDB locally or use MongoDB Atlas.
+- Run the backend:
+  ```sh
+  uvicorn backend.server:app --reload --host 0.0.0.0 --port 8000
+  ```
 
-**🤒 Fever & Headache:**
-"I've had a fever and headache for 2 days, feeling very tired"
-
-**🤢 Stomach Issues:**  
-"I have stomach pain after eating and feel nauseous"
-
-**😵 Dizziness:**
-"I feel dizzy when I stand up quickly, especially in the morning"
-
-**🤧 Cold Symptoms:**
-"I have a runny nose, cough, and sore throat since yesterday"
+### 3. **Frontend Setup**
+- Open a new terminal and go to the frontend folder:
+  ```sh
+  cd frontend
+  ```
+- Install dependencies:
+  ```sh
+  npm install
+  ```
+- Create a `.env` file in `frontend`:
+  ```
+  REACT_APP_BACKEND_URL=http://localhost:8000
+  ```
+- Start the frontend:
+  ```sh
+  npm start
+  ```
+- Visit [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
-## 🎯 **Key Success Metrics**
+## 🛡️ Production Deployment
 
-### **✅ Professional Medical Quality:**
-- Accurate symptom assessment
-- Appropriate first aid suggestions
-- Clear emergency guidance
+- **Backend:** Deploy with a production ASGI server (e.g., Gunicorn + Uvicorn), use managed MongoDB, and set secure environment variables.
+- **Frontend:** Build with `npm run build` and deploy to Vercel, Netlify, or your preferred static host.
+- **Security:** Use HTTPS, restrict CORS, and never expose secrets.
+- **Monitoring:** Set up logging, error monitoring, and database backups.
+
+---
+
+## 🧪 Testing
+
+- **Backend:** Run and extend `backend_test.py` for API endpoint tests.
+- **Frontend:** Test user flows and error handling.
+- **Manual QA:** Try sample conversations and edge cases.
+
+---
+
+## 📝 API Endpoints
+
+| Method | Endpoint                        | Description                        |
+|--------|---------------------------------|------------------------------------|
+| POST   | `/api/consult`                  | Start or continue a consultation   |
+| GET    | `/api/consultations/{session}`  | Get session chat history           |
+| GET    | `/api/health`                   | Health check for backend           |
+
+---
+
+## 🏆 Key Features
+
+- 24/7 AI medical consultations
 - Ghana-specific medical knowledge
-
-### **✅ Technical Excellence:**
-- Sub-2-second AI response times
-- 100% API endpoint functionality  
-- Mobile-responsive design
-- Persistent session management
-
-### **✅ User Experience:**
-- Intuitive conversation flow
-- Professional medical interface
-- Cultural appropriateness for Ghana
-- Clear medical disclaimers
+- Secure, private, and professional
+- Persistent session memory
+- Mobile-first, user-friendly design
 
 ---
 
-## 🔮 **What This Enables**
+## 📣 Disclaimers
 
-### **For Patients:**
-- **24/7 Access:** Medical guidance anytime, anywhere
-- **Local Context:** Ghana-specific medical knowledge
-- **Professional Quality:** Hospital-grade consultation experience
-- **Privacy:** Secure, confidential consultations
-
-### **For Healthcare System:**
-- **Initial Triage:** Helps patients understand when to seek care
-- **Education:** Provides medical knowledge and health awareness
-- **Accessibility:** Reaches remote areas with limited healthcare access
-- **Efficiency:** Reduces unnecessary hospital visits for minor issues
+- This AI system provides **preliminary medical guidance only**.
+- It is **not a replacement for professional medical care**.
+- For emergencies, **call 193 or visit your nearest hospital**.
 
 ---
 
-## 🏆 **Your AI Doctor Agent is Ready!**
+## 🙌 Acknowledgements
 
-You now have a **world-class medical AI system** specifically designed for Ghana! 
+- Built with [FastAPI](https://fastapi.tiangolo.com/), [React](https://react.dev/), [MongoDB](https://www.mongodb.com/), and [Google Gemini](https://ai.google.dev/).
+- Inspired by the healthcare needs of Ghana.
 
-**🎉 Congratulations!** You've successfully built a professional AI doctor that can:
-- Provide medical consultations 24/7
-- Understand Ghana-specific health conditions  
-- Give culturally appropriate medical advice
-- Handle emergency situations appropriately
-- Scale to serve thousands of patients
+---
 
-**Ready to help Ghana get better healthcare access!** 🇬🇭🏥
+## 🇬🇭 Ready to Help Ghana Get Better Healthcare Access!
 
-Would you like to try it out now, or do you have any questions about the features we built?
+**Congratulations!**  
+You now have a world-class AI doctor system, ready to serve patients across Ghana.
+
+---
+
+**Questions or feedback? Open an issue or contact the maintainer.**
