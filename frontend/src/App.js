@@ -46,7 +46,7 @@ function App() {
           },
           {
             type: 'doctor',
-            content: consultation.doctor_response,
+            content: consultation.advisor_response,
             timestamp: consultation.timestamp
           }
         ]);
@@ -97,7 +97,7 @@ function App() {
       };
 
       const response = await axios.post(`${API}/consult`, consultationRequest);
-      setCurrentResponse(response.data.doctor_response); // Store full response for typing
+      setCurrentResponse(response.data.advisor_response); // Store full response for typing
     } catch (error) {
       console.error('Error sending message:', error);
       
